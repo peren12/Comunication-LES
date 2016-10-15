@@ -1,0 +1,16 @@
+import serial
+import time
+aList=[]
+LaunchPad = serial.Serial('COM40', 57600)
+while True:
+    Entrada=raw_input("Escriba: ")
+    if Entrada=="E":
+        break
+    LaunchPad.write(Entrada)
+    time.sleep(0.1)
+    while LaunchPad.inWaiting():
+        a=LaunchPad.readline()
+       
+        aList.append( a );
+        print"Update List:",aList
+LaunchPad.close()
