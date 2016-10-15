@@ -1,0 +1,296 @@
+"""Luis Alvarez
+Esvin Paredes
+Samuel Choc"""
+
+import serial
+import time
+
+caracteres = ['a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p',
+'q','r','s','t','u','v','w','x','y','z','0','1','2','3','4','5','6','7','8','9',
+'-','+',',','.','_','@','!','?','#','/',' ']
+
+class proyecto(object):
+
+    def __init__(self):#constructor
+        self.clave = [[8,4,2],[0,2,4],[2,2,4]]#matriz para encriptar
+        self.llave = [[0,-24,24],[16,9,30],[-8,-16,32]]#matriz para desencriptar
+        self.sel = 0
+        self.m = 0
+        self.indices = []
+        self.indicesenc = []
+        self.caracteresenc = []
+        self.mod = 47
+        self.tren = [] #listas para convertir a binario
+        self.bin = []
+        self.all = []
+        self.chr = []
+        self.e = 0
+        self.byte = 8
+        self.code = [] #para codificacion
+        self.error = []
+        self.codificado = []
+        self.cortar = {1: 3, 2: 5, 3: 6, 4: 7, 5: 9, 6: 10, 7: 11, 8: 12, 9: 13, 10: 14, 11: 15, 12: 17, 13: 18, 14: 19, 15: 20, 16: 21}
+        self.limite = 0
+        self.stp = ['0','0','0','0','0','0','0','0','0','0','0','0','0','1']
+        self.name = 'guardar'
+
+    def ingreso(self):#bienvenida
+        print '\nBienvenido al Sistema de Comunicacion LES\n'
+        print 'Los Caracteres Disponibles son:\n'
+        print ','.join(caracteres)
+        print '\nSi se Ingresan Caracteres que no Estan Disponibles Seran Omitidos\n'
+        self.seleccion()
+        
+    def seleccion(self):#se elige la accion
+        self.sel = raw_input('Desea Enviar (e) o Recibir (r)-- >  ')
+        
+        if self.sel == 'e':
+            print '\nHa elegido Enviar\n'
+            self.m = raw_input('Ingrese el Texto a Enviar ----- >  ')
+            self.convertir()
+
+        elif self.sel == 'r':
+            print '\nHa elegido Recibir\n'
+            self.recibir()
+            
+        else:
+            self.seleccion()
+
+    def convertir(self):#conversion de texto a indices
+
+        for i in self.m:
+            for j in range(len(caracteres)):
+                c = caracteres[j]
+                if i == c:
+                    self.indices.append(j)
+        while len(self.indices)%3 != 0:#agrega espacios
+            self.indices.append(46)
+               
+        self.encriptar()
+
+    def encriptar(self, n = 0):#multiplicacion clave por indices
+        t = len(self.indices)/3
+        for l in range(t):
+            for j in self.clave:
+                d = 0
+                for i in j:
+                    d = d + i*self.indices[n%3 + 3*l]
+                    n = n+1
+
+                D = d%self.mod
+                
+                self.indicesenc.append(D)
+
+        self.caracteresmod()
+
+    def caracteresmod(self):#conversion de indices a texto
+        for i in self.indicesenc:
+            C = caracteres[i]
+            self.caracteresenc.append(C)
+
+        print self.caracteresenc
+        
+        self.binario()
+
+    def binario(self):#conversion de texto a decimal
+        for i in self.caracteresenc:
+            self.bin = []
+            n = ord(i)
+            self.base2(n)
+
+        self.llenado()
+
+    def base2(self, n):#conversion de decimal a binario
+        while n > 0:
+            r = n%2
+            n = n/2
+            self.bin.append(r)
+    
+        while len(self.bin) < self.byte:
+            self.bin.append(0)
+
+        self.all.append(self.bin)
+
+    def llenado(self):#coloca todos los bytes en una lista
+        for i in self.all:
+            self.code = i
+            self.codificar()
+
+        self.finalizar()
+
+    def codificar(self):
+        p1 = (int(self.code[0])+int(self.code[1])+int(self.code[3]))%2
+        p2 = (int(self.code[0])+int(self.code[2])+int(self.code[3]))%2
+        p3 = (int(self.code[1])+int(self.code[2])+int(self.code[3]))%2
+        p4 = (int(self.code[4])+int(self.code[5])+int(self.code[7]))%2
+        p5 = (int(self.code[4])+int(self.code[6])+int(self.code[7]))%2
+        p6 = (int(self.code[5])+int(self.code[6])+int(self.code[7]))%2
+        self.code.insert(0, str(p1))
+        self.code.insert(1, str(p2))
+        self.code.insert(3, str(p3))
+        self.code.insert(7, str(p1))
+        self.code.insert(8, str(p2))
+        self.code.insert(10, str(p3))
+
+        self.enviar()
+        print self.code
+
+    def enviar(self):
+        try:
+            LaunchPad = serial.Serial('COM3', 57600)
+            LaunchPad.write('1')
+            for i in self.code:
+                LaunchPad.write(str(i))
+                #print i
+            time.sleep(0.7)
+            LaunchPad.close()
+        except:
+            print 'no se consiguio la conexion'
+    #aqui termina la parte de envio
+
+    def finalizar(self):
+        try:
+            LaunchPad = serial.Serial('COM3', 57600)
+            LaunchPad.write('1')
+            for i in self.stp:
+                LaunchPad.write(str(i))
+                print i
+            time.sleep(0.2)
+            LaunchPad.write('0')
+            LaunchPad.close()
+        except:
+            print 'no se consiguio la conexion'
+        self.reinicio()
+    #aqui termina la parte de envio
+
+    def recibir(self):
+        print '\nSin Programar\n'
+        
+    def decodificar(self):
+        p1 = (int(self.code[0])+int(self.code[2])+int(self.code[4])+int(self.code[6]))%2
+        p2 = (int(self.code[1])+int(self.code[2])+int(self.code[5])+int(self.code[6]))%2
+        p3 = (int(self.code[3])+int(self.code[4])+int(self.code[5])+int(self.code[6]))%2
+        p4 = (int(self.code[7])+int(self.code[9])+int(self.code[11])+int(self.code[13]))%2
+        p5 = (int(self.code[8])+int(self.code[9])+int(self.code[12])+int(self.code[13]))%2
+        p6 = (int(self.code[10])+int(self.code[11])+int(self.code[12])+int(self.code[13]))%2
+        self.paridad.append(p1)
+        self.paridad.append(p2)
+        self.paridad.append(p3)
+        self.paridad.append(p4)
+        self.paridad.append(p5)
+        self.paridad.append(p6)
+        #print self.code
+        self.revision()
+
+    def revision(self):
+        if (p1 == 0 & p2 == 0 & p3 == 0 & p4 == 0 & p5 == 0 & p6 == 0):
+            print 'No se Encontro Ningun Error'
+            self.decimal()
+            
+        else:
+            error = 0
+            if (p1 == 0 & p2 == 0 & p3 == 0):
+                error = 7
+            else:
+                self.errorr(0, 3, error)
+                
+            if (p4 == 0 & p5 == 0 & p6 == 0):
+                self.correccion()
+            else:
+                error = 7
+                self.errorr(3, 6, error)
+                self.correccion()
+
+    def errorr(self, li, ls, error):
+        j = 0
+        for i in range (li, ls):
+            error = error + self.paridad[i]*(2**j)
+            j = j + 1
+
+        self.error.append(error)
+
+        print '\nSe Encontro un Error en los Bits '+str(self.error)
+        
+    def correccion(self):
+        self.decimal()
+
+
+    def decimal(self):
+        for i in self.code:
+            self.base10(i)
+
+        print self.chr
+
+    def base10(self, i):
+        exp = 0
+        n = 0
+        for j in i:
+            j = j*2
+            n = n + (j**exp)
+            exp = exp + 1
+
+        self.chr.append(chr(n))
+        
+        """int('1010101', 2)"""
+
+    def convertir1(self):#conversion de texto a indices
+
+        for i in self.chr:
+            for j in range(len(caracteres)):
+                c = caracteres[j]
+                if i == c:
+                    self.indices.append(j)
+               
+        self.desencriptar()
+        
+    def desencriptar(self, n = 0):#multiplicacion llave por indices
+        t = len(self.indices)/3
+        for l in range(t):
+            for j in self.llave:
+                d = 0
+                for i in j:
+                    d = d + i*self.indices[n%3 + 3*l]
+                    n = n+1
+
+                D = d%self.mod
+                
+                self.indicesenc.append(D)
+
+        self.caracteresmod2()
+
+    def caracteresmod2(self):#conversion de indices a texto
+        for i in self.indicesenc:
+            C = caracteres[i]
+            self.caracteresenc.append(C)
+
+        self.mostrar()
+
+    def mostrar(self):
+        print '\nEste es el Texto Resultante\n'
+        print ''.join(self.caracteresenc)
+        print self.all
+        self.reinicio()
+
+    def reinicio(self):
+        o = raw_input('\nPresione Enter Para Realizar Otra Accion o Ctrl+C Para Salir -- >  ')
+        if o == '':
+            self.borrado()
+            self.seleccion()
+            
+    def borrado(self):#se borran las listas para quitar el texto anterior
+        del self.indices[0:len(self.indices)]
+        del self.indicesenc[0:len(self.indicesenc)]
+        del self.caracteresenc[0:len(self.caracteresenc)]
+        del self.all[0:len(self.all)]
+
+def run():
+    
+    try:
+        Proyecto = proyecto()
+        Proyecto.ingreso()
+
+    except KeyboardInterrupt:
+        print 'Hasta Luego'
+
+run()
+
