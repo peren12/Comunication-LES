@@ -1,0 +1,22 @@
+char letra;
+
+void setup() {
+  // put your setup code here, to run once:
+Serial.begin(57600);
+pinMode(30, OUTPUT);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly: 
+  if (Serial.available() > 0){
+    letra = Serial.read();
+    if (letra == '0' | letra == 0)  //si el valor es 0
+    {
+      digitalWrite(30, LOW);  //apagamos el pin
+    }
+    else if (letra == '1'  | letra == 1)
+    {
+      digitalWrite(30, HIGH);  //encendemos el pin
+    }
+    delay(50);
+    }
